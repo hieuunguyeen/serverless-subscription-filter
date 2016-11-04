@@ -69,7 +69,7 @@ class SubscriptionFilterPlugin {
 
     this.hooks = {
       'subscriptionfilter:register:register': this.registerSubscriptionFilter.bind(this),
-      // 'subscriptionfilter:remove:remove': this.removeSubscriptionFilter.bind(this),
+      'subscriptionfilter:remove:remove': this.removeSubscriptionFilter.bind(this),
       // 'subscriptionfilter:loadfrom:loadfrom': this.loadSettingsAndRun.bind(this),
     };
   }
