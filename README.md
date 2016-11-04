@@ -11,7 +11,7 @@ Install plugin in the root level of your Serverless project
 
 **Supports only Serverless@^1.0.0, lower versions are incompatible**
 
-`npm install --save-dev serverless-header-function`
+`npm install --save-dev serverless-subscription-filter`
 
 Append the plugin's name to serverless plugins list in `serverless.yml`
 ```yml
