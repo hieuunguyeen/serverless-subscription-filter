@@ -38,11 +38,6 @@ class SubscriptionFilterPlugin {
                 shortcut: 'n',
                 required: true,
               },
-              stage: {
-                usage: 'Specify the stage (e.g. "--stage dev")',
-                shortcut: 's',
-                required: true,
-              },
             },
           },
           remove: {
@@ -82,20 +77,21 @@ class SubscriptionFilterPlugin {
   registerSubscriptionFilter() {
     const source = this.serverless.service.getFunction(this.options.function);
     const target = this.serverless.service.getFunction(this.options.target);
-    const pattern = this.serverless.service.getFunction(this.options.pattern);
-    const filterName = this.serverless.service.getFunction(this.options.name);
-    const stage = this.options.stage;
-    const region = this.options.region;
+
+    const filterName = this.options.name;
+    const stage = this.serverless.service.provider.stage;
+    const region = this.serverless.service.provider.region;
+    const pattern = this.options.pattern;
 
     const logGroupName = `/aws/lambda/${source.name}`;
-
     return this.getFunctionArn(target.name, stage, region)
       .then(targetArn => {
+        console.log(targetArn);
         return this.removeLogPermission(targetArn, target.name, stage, region)
           .delay(2000)
           .then(() => this.addLogPermission(targetArn, target.name, stage, region))
           .delay(2000)
-          .then(() => this.removeSubscriptionFilter(filterName, logGroupName))
+          .then(() => this.removeSubscriptionFilter(filterName, logGroupName, stage, region))
           .delay(2000)
           .then(() => this.createSubscriptionFilter(targetArn, filterName, pattern, logGroupName, stage, region));
       });
@@ -107,11 +103,11 @@ class SubscriptionFilterPlugin {
       StatementId: loggingFunctionName,
       Action: 'lambda:InvokeFunction',
       Principal: `logs.${region}.amazonaws.com`,
-      Qualifier: stage,
     };
     return this.serverless.getProvider('aws')
       .request('Lambda', 'addPermission', params, stage, region)
       .then(data => {
+        console.log(`Successfully added log permission for ${params.FunctionName}!`);
         return Promise.resolve(data);
       });
   }
@@ -120,13 +116,21 @@ class SubscriptionFilterPlugin {
     const params = {
       FunctionName: arn,
       StatementId: loggingFunctionName,
-      Qualifier: stage,
     };
     console.log(`Removing log permission for ${loggingFunctionName}`);
     return this.serverless.getProvider('aws', params)
       .request('Lambda', 'removePermission', params, stage, region)
-      .then(data => Promise.resolve(data))
-      .catch(error => false); // It's ok failing to remove log permission if it doesn't exist
+      .then(data => {
+        console.log(`Successfully removed log permission for ${params.FunctionName}!`);
+        return Promise.resolve(data);
+      })
+      .catch(error => {
+        if (error.statusCode === 404) {
+          console.log(`Log permission for ${params.FunctionName} does not exist, skipping`);
+          return Promise.resolve();
+        }
+        return Promise.reject(error);
+      });
   }
 
   createSubscriptionFilter(destinationArn, filterName, filterPattern, logGroupName, stage, region) {
@@ -139,12 +143,8 @@ class SubscriptionFilterPlugin {
     console.log(`Putting subscription filter for ${logGroupName} ...`);
     return this.serverless.getProvider('aws')
       .request('CloudWatchLogs', 'putSubscriptionFilter', params, stage, region)
-      .then((error, data) => {
-        if (error.message) {
-          console.log('Failed to put subscription filter for ' + params.logGroupName);
-          return Promise.reject(error);
-        }
-        console.log(`Successfully put subscription filter for ${params.logGroupName}!`);
+      .then(data => {
+        console.log(`Successfully created subscription filter for ${params.logGroupName}!`);
         return Promise.resolve(data);
       });
   }
@@ -158,8 +158,15 @@ class SubscriptionFilterPlugin {
     return this.serverless.getProvider('aws')
       .request('CloudWatchLogs', 'deleteSubscriptionFilter', params, stage, region)
       .then(data => {
-        console.log(`Successfully delete subscription filter for ${params.logGroupName}!`);
+        console.log(`Successfully deleted subscription filter for ${params.logGroupName}!`);
         return Promise.resolve(data);
+      })
+      .catch(error => {
+        if (error.statusCode === 400) {
+          console.log(`Subscription filter for ${params.FunctionName} does not exist, skipping`);
+          return Promise.resolve();
+        }
+        return Promise.reject(error);
       });
   }
 
@@ -167,10 +174,12 @@ class SubscriptionFilterPlugin {
     const params = {
       FunctionName: functionName,
     };
-
     return this.serverless.getProvider('aws')
       .request('Lambda', 'getFunction', params, stage, region)
-      .then(data => Promise.resolve(data.FunctionArn));
+      .then(data => {
+        console.log('Successfully retrieved functionArn for ', functionName);
+        return Promise.resolve(data.Configuration.FunctionArn);
+      });
   }
 }
 

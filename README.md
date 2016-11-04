@@ -9,6 +9,8 @@ Register and pipe the logs of one lambda to another to process.
 Make sure you have Node.js v4.0+ and Serverless Framework installed
 Install plugin in the root level of your Serverless project
 
+**Supports only Serverless@^1.0.0, lower versions are incompatible**
+
 `npm install --save-dev serverless-header-function`
 
 Append the plugin's name to serverless plugins list in `serverless.yml`
