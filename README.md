@@ -21,12 +21,12 @@ plugins:
 
 ### Current supports:
 1. Register a subscription filter for a lambda by its name
+2. Remove a subscription filter for a lambda using its name and the filter name
 
 ### Incoming supports:
-1. Remove subscription filter for a lambda
-2. Load settings from a file by path
-3. Batch + Async execution
-4. **More? Bring it on!**
+1. Load settings from a file by path
+2. Batch + Async execution
+3. **More? Bring it on!**
 
 ### Usage
 ```sh

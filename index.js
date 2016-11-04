@@ -49,6 +49,11 @@ class SubscriptionFilterPlugin {
                 shortcut: 'f',
                 required: true,
               },
+              name: {
+                usage: 'Specify the name of the filter which you want to remove (e.g. "--name someName")',
+                shortcut: 'n',
+                required: true,
+              },
             },
           },
           // Load settings from a file
